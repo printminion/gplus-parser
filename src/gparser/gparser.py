@@ -24,10 +24,12 @@ def toJSON(str):
     
     
     m = re.search('{([^"]+):', str)
-    if m:
-        print m.group()
-        print m.group(1)
+    while m:
+#        print m.group()
+#        print m.group(1)
         str = str.replace(m.group(), '{"%s":' % m.group(1))
+        m = re.search('{([^"]+):', str)
+    
 
     
 #    str = str.replace("[[", "{")

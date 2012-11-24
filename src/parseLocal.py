@@ -3,7 +3,9 @@ import urllib2
 from gplus import gplus
 import sys
 import imp
+import json
 from time import sleep
+import gparser
 
 settings = imp.load_source('module.name', './settings.py')
 
@@ -53,7 +55,16 @@ def parsePlaceReviewers(placeToFetch):
     #location = ''
     #print ''
     #print "reviews for\n%s\t%s" % (placeToFetch, location)
-    for reviewer in search[2][59][7][11][0]:
+    reviewers = []
+    
+    
+    try:
+        reviewers = search[2][59][7][11][0]
+    except:
+        pass
+    
+    
+    for reviewer in reviewers:
         userName = reviewer[0][0][1]
         #print userName    for place in places:
         if len(reviewer[0][0]) > 2:
@@ -83,10 +94,9 @@ def parsePlaceReviewers(placeToFetch):
 
 #get user places
 #https://plus.google.com/local/*/s/by%3A100637659921903226572
-
 #userPlaces = gplus.userPlaces('101697775213251991950') # Aygul
 #print 'reviews:%s' % userPlaces[5][1][1][33][18][reviewer0][1]
-#print 'reviews:%s' % userPlaces[5][1][1][33][18][1][1]
+#print 'reviews:%s' % userPlareviewsces[5][1][1][33][18][1][1]
 #https://plus.google.com/105673568444741904826/about?gl=DE&hl=en-DE
 #user = gplus.searchResultsOnly('100637659921903226572') #Manfred Mueller
 #print 'reviews:%s' % len(user[0][1][1])
@@ -109,10 +119,22 @@ def parsePlaceReviewers(placeToFetch):
 #parsePlaceReviewers('118423825197084813171')#Munich Frauenkirche
 #parsePlaceReviewers('102231670071959591188')#Augustiner-Keller
 
+#parsePlaceReviewers('115023799404113624496')#Augustiner-Keller
+
+
+#myFile = open('/home/cr/develop/python/zagat/cache/place_115023799404113624496.json', 'r')
+#gjson = myFile.read()
+#myFile.close()
+#
+#gjson = gparser.gparser.toJSON(gjson)
+#obj = json.loads(gjson)
+
+#sys.exit()
+
+
 places = [line.strip() for line in open('local_ids.txt')]
 for place in places:
-    print place
-    #parsePlaceReviewers(place)
+    parsePlaceReviewers(place)
     sleep(1)
 
 

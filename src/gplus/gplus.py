@@ -156,10 +156,12 @@ def getPlaceInfo(placeId):
     
     
     filter = '<span class="qja">'
-    reviews = response[response.find(filter) + len(filter):]
-    reviews = reviews[:reviews.find('</span>')]
-    reviews = reviews.replace(' reviews', '')
-    reviews = reviews.replace(' review', '')
+    reviews = '0'
+    if response.find(filter) > 0:
+        reviews = response[response.find(filter) + len(filter):]
+        reviews = reviews[:reviews.find('</span>')]
+        reviews = reviews.replace(' reviews', '')
+        reviews = reviews.replace(' review', '')
     
     myFile = open(cacheFile.replace('.json', '.count'), 'w')
     myFile.write(reviews)
@@ -183,6 +185,8 @@ def getPlaceInfo(placeId):
     
     
     gjson = gparser.toJSON(response)
+#    gjson = gparser.toJSON(gjson)
+    
     
     #print gjson
     
@@ -248,10 +252,12 @@ def userPlaces(placeId, location = ''):
     myFile.close()
     
     filter = '<div role="button" class="a-f-e c-b c-b-T m3i2xf" tabindex="0">'
-    reviews = response[response.find(filter) + len(filter):]
-    reviews = reviews[:reviews.find('</div>')]
-    reviews = reviews.replace(' reviews', '')
-    reviews = reviews.replace(' review', '')
+    reviews = '0'
+    if response.find(filter) > 0:
+        reviews = response[response.find(filter) + len(filter):]
+        reviews = reviews[:reviews.find('</div>')]
+        reviews = reviews.replace(' reviews', '')
+        reviews = reviews.replace(' review', '')
             
     #save html
     myFile = open(cacheFile.replace('.json', '.count'), 'w')
