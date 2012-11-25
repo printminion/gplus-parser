@@ -12,6 +12,13 @@ settings = imp.load_source('module.name', './settings.py')
 gplus.FOLDER_CACHE = settings.PATH_CACHE
 gplus.GPLUS_COOKIE = settings.GPLUS_COOKIE
 
+def printt(str, file = gplus.FOLDER_CACHE + '_profile_run.log'):
+    print str
+    myFile = open(file, 'aw')
+    myFile.write('%s\n' % str)
+    myFile.close()
+    
+    
 def searchPlacesByGivenNames(city, places):
     ''' 
     search places by given name
@@ -22,15 +29,15 @@ def searchPlacesByGivenNames(city, places):
         search = gplus.searchPlace(city, urllib2.quote(place))#'35%20Millimeter')
     
         try:
-            print '%s\t%s' % (place, search[5][1][0][33][29][7])
+            printt('%s\t%s' % (place, search[5][1][0][33][29][7]))
         except:
-            print '%s\t%s' % (place, 'none')
+            printt('%s\t%s' % (place, 'none'))
             
     
     #for place in search[5][1][0][33][29]:
     #    print place[7] #place[0][10]
         
-        #print place[10] #place[0][10]reviewer
+        #print placegplus[10] #place[0][10]reviewer
         
         
         #116313710465364883329
@@ -40,16 +47,22 @@ def searchPlacesByGivenNames(city, places):
 #print search
 
 
-def parsePlaceReviewers(placeToFetch):
-    (reviews, name, search) = gplus.getPlaceInfo(placeToFetch)
+def parsePlaceReviewers(placeToFetch, sleep = 0):
     
-    print '%s\t%s\t%s' % (placeToFetch, reviews, name)
     
+    (reviews, name, search) = gplus.getPlaceInfo(placeToFetch, sleep)
+    
+    printt('%s\t%s\t%s' % (placeToFetch, reviews, name))
+    
+    if search == None:
+        return
+    
+    
+#    print
     #print 'place:%s' % placeToFetch
     #print 'place:%s' % search
     #print 'reviews for place:%s' % search[2][59][7][18][0][1]
     #print 'reviews for place:%s' % search[2][59][7][18][1][1]
-    sleep(0.05)
     #https://plus.google.com/local/Munich%2C%20Germany/cacheFile =  '%ssearchresultsonly_%s.json' % (FOLDER_CACHE, userId)s/by%3A108939854631801299820
     location = 'Munich%2C%20Germany'
     #location = ''
@@ -76,11 +89,11 @@ def parsePlaceReviewers(placeToFetch):
     #        print '    reviewsData:%s' % userPlaces
             #print '    reviewsCount:%s for %s' % (reviews, urllib2.unquote(location))
             
-            print '\t%s\t%s\t%s' % (userId, reviews, userName)
+            printt('\t%s\t%s\t%s' % (userId, reviews, userName))
     #        print 'reviews:%s' % userPlaces[5][1][1][33][18][0][1]
             #print 'reviews:%s' % userPlaces[5][1][1][33][18][1]
             #print 'reviews:%s' % userPlaces[5][1][
-    print "------------"
+    #print "------------"
 #1][33][18][1][1]
         
 
@@ -101,7 +114,7 @@ def parsePlaceReviewers(placeToFetch):
 #user = gplus.searchResultsOnly('100637659921903226572') #Manfred Mueller
 #print 'reviews:%s' % len(user[0][1][1])
 #
-#user = gplus.searchResultsOnly('101697775213251991950') # Aygul
+#user = gplus.searchgplusResultsOnly('101697775213251991950') # Aygul
 #print 'reviews:%s' % len(user[0][1][1])
 
 
@@ -114,7 +127,7 @@ def parsePlaceReviewers(placeToFetch):
 #places = [line.strip() for line in open('places.txt')]
 #searchPlacesByGivenNames('Munich', places)
 
-#https://plus.google.com/118423825197084813171/about?gl=DE&hl=en-DE
+#https://plus.google.printcom/118423825197084813171/about?gl=DE&hl=en-DE
 
 #parsePlaceReviewers('118423825197084813171')#Munich Frauenkirche
 #parsePlaceReviewers('102231670071959591188')#Augustiner-Keller
@@ -132,10 +145,56 @@ def parsePlaceReviewers(placeToFetch):
 #sys.exit()
 
 
-places = [line.strip() for line in open('local_ids.txt')]
-for place in places:
-    parsePlaceReviewers(place)
-    sleep(1)
+#places = [line.strip() for line in open('local_ids.txt')]
+#for place in places:
+#    parsePlaceReviewers(place, 1)
+
+users = ['113750533748883690330', '105062617611748079921', '110793623474522801689']
+users = ['104512463398531242371']
+#users = [line.strip() for line in open('profile_ids.txt')]
+
+for user in users:
+#    print user
+    profile_id = name = None
+    following = followers = 'hidden'
+
+    try:
+        (reviews, name, profile) = gplus.getUserProfile(user)
+    except:
+        printt('%s\t%s\t%s\t%s\tPARSE ERROR' % (user, name, followers, following))
+        print "Unexpected error:", sys.exc_info()
+        continue
+    
+    #print profile
+    try:
+        following = profile[3][0][0]
+    except:
+        pass
+
+
+    try:
+        followers = profile[3][2][0]
+    except:
+        pass
+    
+    
+    try:
+        profile_id = profile[0]
+        printt('%s\t%s\t%s\t%s' % (profile_id, name, followers, following))
+    except:
+        printt('%s\t%s\t%s\t%s\tPARSE ERROR' % (profile_id, name, followers, following))
+        pass    
+    #print 'name:%s' % name
+    #print 'id:%s' % profile_id
+    #print 'followers:%s' % followers
+    #print 'following:%s' % following
+    
+
+
+
+
+
+sys.exit()
 
 
 

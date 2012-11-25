@@ -6,6 +6,7 @@ Created on Nov 16, 2012
 import urllib2
 import urllib
 import json
+from time import sleep
 
 from gparser import gparser
 
@@ -118,7 +119,123 @@ def searchPlaces(location):
     
     return search
 
-def getPlaceInfo(placeId):
+
+def getUserProfile(profileId, sleepBeforeRequest = 0):
+    
+    #AF_initDataCallback
+    cacheFile =  '%sprofile_%s.json' % (FOLDER_CACHE, profileId)
+        
+    if ifCached(cacheFile):
+        #get cached version
+        myFile = open(cacheFile, 'r')
+        gjson = myFile.read()
+        myFile.close()
+        
+        obj = json.loads(gjson)
+
+        myFile = open(cacheFile.replace('.json', '.count'), 'r')
+        reviews = myFile.read()
+        myFile.close()
+        
+        myFile = open(cacheFile.replace('.json', '.locationName'), 'r')
+        locationName = myFile.read()
+        myFile.close()
+
+#        myFile = open(cacheFile.replace('.json', '.data.json'), 'r')
+#        data = json.loads(myFile.read())
+#        myFile.close()
+                                
+        return (reviews, locationName, obj)
+
+    url = 'https://plus.google.com/%s/about?gl=EN&hl=en-EN' % profileId
+    
+    
+    try:
+        if sleepBeforeRequest > 0:
+            sleep(sleepBeforeRequest)
+        
+        request = urllib2.Request(url)
+        f = urllib2.build_opener().open(request)
+        response = f.read()
+        #print response
+    except:
+        return (0, 'REMOVE THIS ID', None)
+    
+    
+    #save html
+    myFile = open(cacheFile.replace('.json', '.html'), 'w')
+    myFile.write(response)
+    myFile.close()
+    
+    data = {}
+    
+    filter = '<span class="qja">'
+    reviews = '0'
+    data['reviews'] = 0
+    if response.find(filter) > 0:
+        reviews = response[response.find(filter) + len(filter):]
+        reviews = reviews[:reviews.find('</span>')]
+        reviews = reviews.replace(' reviews', '')
+        reviews = reviews.replace(' review', '')
+        data['reviews'] = reviews
+        
+#    myFile = open(cacheFile.replace('.json', '.count'), 'w')
+#    myFile.write(reviews)
+#    myFile.close()
+    
+    #<span class="FJ9Y4">Munich Frauenkirche</span>
+    
+    data['name'] = None
+    
+    filter = '<span class="FJ9Y4">'  
+    locationName = response[response.find(filter) + len(filter):]
+    locationName = locationName[:locationName.find('</span>')]
+#    myFile = open(cacheFile.replace('.json', '.locationName'), 'w')
+#    myFile.write(locationName)
+#    myFile.close()
+    data['name'] = locationName
+    
+    #tagline
+      
+    data['tagline'] = None
+    #<div class="Ca a-f-e">Software Engineer, Munich, Germany</div>
+    filter = '<div class="Ca a-f-e">'  
+    tagline = response[response.find(filter) + len(filter):]
+    tagline = tagline[:tagline.find('</div>')]
+
+    data['location'] = None
+    #<span class="Yta Zta">Google, Munich</span>
+    filter = '<span class="Yta Zta">'
+    location = response
+    for i in location.find(filter):
+        location = location[location.find(filter) + len(filter):]
+        location = location[:location.find('</span>')]
+        data['location'] = '%s,\t%s' % (data['location'], location)
+
+    myFile = open(cacheFile.replace('.json', '.data.json'), 'w')
+    myFile.write(data)
+    myFile.close()
+
+    
+    filter = "({key: '5', isError:  false , data: "
+    response = response[response.find(filter) + len(filter):]
+    
+#    response = "({key: '5', isError:  false , data: %s" % response
+    response = response[:response.find('});</script>')]
+    
+    
+    gjson = gparser.toJSON(response)
+    #print gjson
+    
+    myFile = open(cacheFile, 'w')
+    myFile.write(gjson)
+    myFile.close()
+    
+    obj = json.loads(gjson)
+    return (reviews, locationName, obj)
+
+
+def getPlaceInfo(placeId, sleepBeforeRequest = 0):
     
     #AF_initDataCallback
     cacheFile =  '%splace_%s.json' % (FOLDER_CACHE, placeId)
@@ -144,10 +261,17 @@ def getPlaceInfo(placeId):
     url = 'https://plus.google.com/%s/about?gl=EN&hl=en-EN' % placeId
     
     
-    request = urllib2.Request(url)
-    f = urllib2.build_opener().open(request)
-    response = f.read()
-    #print response
+    try:
+        if sleepBeforeRequest > 0:
+            sleep(sleepBeforeRequest)
+        
+        request = urllib2.Request(url)
+        f = urllib2.build_opener().open(request)
+        response = f.read()
+        #print response
+    except:
+        return (0, 'REMOVE THIS ID', None)
+    
     
     #save html
     myFile = open(cacheFile.replace('.json', '.html'), 'w')
