@@ -120,12 +120,21 @@ def searchPlaces(location):
     return search
 
 
-def getUserProfile(profileId, sleepBeforeRequest = 0):
+def getUserProfile(profileId, reparse = False, sleepBeforeRequest = 0):
     
     #AF_initDataCallback
     cacheFile =  '%sprofile_%s.json' % (FOLDER_CACHE, profileId)
-        
-    if ifCached(cacheFile):
+    response = None
+    
+    sourceFile = cacheFile.replace('.json', '.html')
+    
+    if reparse:
+        if ifCached(sourceFile):
+#            print 'get source html'
+            myFile = open(sourceFile, 'r')
+            response = myFile.read()
+            myFile.close()
+    elif ifCached(cacheFile):
         #get cached version
         myFile = open(cacheFile, 'r')
         gjson = myFile.read()
@@ -133,42 +142,45 @@ def getUserProfile(profileId, sleepBeforeRequest = 0):
         
         obj = json.loads(gjson)
 
-        myFile = open(cacheFile.replace('.json', '.count'), 'r')
-        reviews = myFile.read()
+        myFile = open(cacheFile.replace('.json', '.data.json'), 'r')
+        data = myFile.read()
+        data = json.loads(data)
         myFile.close()
-        
-        myFile = open(cacheFile.replace('.json', '.locationName'), 'r')
-        locationName = myFile.read()
-        myFile.close()
-
-#        myFile = open(cacheFile.replace('.json', '.data.json'), 'r')
-#        data = json.loads(myFile.read())
-#        myFile.close()
                                 
-        return (reviews, locationName, obj)
+#        return (reviews, locationName, obj)
+        return (data, obj)
 
     url = 'https://plus.google.com/%s/about?gl=EN&hl=en-EN' % profileId
-    
-    
-    try:
-        if sleepBeforeRequest > 0:
-            sleep(sleepBeforeRequest)
-        
-        request = urllib2.Request(url)
-        f = urllib2.build_opener().open(request)
-        response = f.read()
-        #print response
-    except:
-        return (0, 'REMOVE THIS ID', None)
-    
-    
-    #save html
-    myFile = open(cacheFile.replace('.json', '.html'), 'w')
-    myFile.write(response)
-    myFile.close()
-    
     data = {}
+    data['id'] = profileId
+    data['status'] = 'parsing'
     
+        
+    if reparse and response is not None:
+        #do no request
+        pass
+    else:
+        try:
+            if sleepBeforeRequest > 0:
+                sleep(sleepBeforeRequest)
+            
+            request = urllib2.Request(url)
+            f = urllib2.build_opener().open(request)
+            response = f.read()
+            #print response
+        except:
+            data['status'] = 'parse error'
+            return (data, None)
+        
+        
+        #save html
+        myFile = open(cacheFile.replace('.json', '.html'), 'w')
+        myFile.write(response)
+        myFile.close()
+    
+
+    
+    data['id'] = profileId
     filter = '<span class="qja">'
     reviews = '0'
     data['reviews'] = 0
@@ -178,7 +190,9 @@ def getUserProfile(profileId, sleepBeforeRequest = 0):
         reviews = reviews.replace(' reviews', '')
         reviews = reviews.replace(' review', '')
         data['reviews'] = reviews
-        
+    
+#    print 'reviews:%s' % reviews
+    
 #    myFile = open(cacheFile.replace('.json', '.count'), 'w')
 #    myFile.write(reviews)
 #    myFile.close()
@@ -194,45 +208,95 @@ def getUserProfile(profileId, sleepBeforeRequest = 0):
 #    myFile.write(locationName)
 #    myFile.close()
     data['name'] = locationName
-    
+#    print 'name:%s' % locationName
     #tagline
       
-    data['tagline'] = None
+    data['tagline'] = []
     #<div class="Ca a-f-e">Software Engineer, Munich, Germany</div>
-    filter = '<div class="Ca a-f-e">'  
-    tagline = response[response.find(filter) + len(filter):]
-    tagline = tagline[:tagline.find('</div>')]
-
-    data['location'] = None
+    filter = '<div class="Ca a-f-e">'
+    taglinestring = response
+    if taglinestring.find('Tagline') > 0:
+    
+        while taglinestring.find(filter) > 0:
+            taglinestring = taglinestring[taglinestring.find(filter) + len(filter):]
+            tagline = taglinestring[:taglinestring.find('</div>')]
+            taglinestring = taglinestring[len(tagline):]
+            data['tagline'].append(tagline)
+            
+#            print 'tagline:%s' % tagline
+    
+    data['location'] = []
     #<span class="Yta Zta">Google, Munich</span>
     filter = '<span class="Yta Zta">'
-    location = response
-    for i in location.find(filter):
-        location = location[location.find(filter) + len(filter):]
-        location = location[:location.find('</span>')]
-        data['location'] = '%s,\t%s' % (data['location'], location)
+    locationstring = response
+    while locationstring.find(filter) > 0:
+        locationstring = locationstring[locationstring.find(filter) + len(filter):]
+        location = locationstring[:locationstring.find('</span>')]
+        locationstring = locationstring[len(location):]
+        data['location'].append(location)
 
-    myFile = open(cacheFile.replace('.json', '.data.json'), 'w')
-    myFile.write(data)
-    myFile.close()
-
+#    print data
     
     filter = "({key: '5', isError:  false , data: "
     response = response[response.find(filter) + len(filter):]
-    
-#    response = "({key: '5', isError:  false , data: %s" % response
     response = response[:response.find('});</script>')]
-    
-    
     gjson = gparser.toJSON(response)
-    #print gjson
+    obj = None
+    try:
+        data['followers'] = 'failed to parse'
+        data['following'] = 'failed to parse'
     
-    myFile = open(cacheFile, 'w')
-    myFile.write(gjson)
+        obj = json.loads(gjson)
+        #print gjson
+        
+        #extend parsed data
+        data = parseProfileData(data, obj)
+    except:
+        pass
+    myFile = open(cacheFile.replace('.json', '.data.json'), 'w')
+    myFile.write(json.dumps(data))
     myFile.close()
     
-    obj = json.loads(gjson)
-    return (reviews, locationName, obj)
+    
+    myFile = open(cacheFile, 'w')
+    myFile.write(json.dumps(obj))
+    myFile.close()
+    
+    
+    return (data, obj)
+
+def parseProfileData(data, profile_gjson):
+    following = followers = 'hidden'
+    #print profile
+    data['followers'] = 'hidden'
+    data['following'] = 'hidden'
+        
+    try:
+        following = profile_gjson[3][0][0]
+    except:
+        pass
+
+
+    try:
+        followers = profile_gjson[3][2][0]
+    except:
+        pass
+    
+    
+    try:
+        profile_id = profile_gjson[0]
+
+        data['followers'] = followers
+        data['following'] = following
+        data['status'] = 'success'
+        
+    except:
+#        printt('%s\t%s\t%s\t%s\tPARSE ERROR' % (profile_id, name, followers, following))
+        data['status'] = 'parse error'
+        pass            
+    
+    
+    return data
 
 
 def getPlaceInfo(placeId, sleepBeforeRequest = 0):

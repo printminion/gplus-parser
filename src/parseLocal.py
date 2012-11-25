@@ -149,51 +149,44 @@ def parsePlaceReviewers(placeToFetch, sleep = 0):
 #for place in places:
 #    parsePlaceReviewers(place, 1)
 
-users = ['113750533748883690330', '105062617611748079921', '110793623474522801689']
-users = ['104512463398531242371']
-#users = [line.strip() for line in open('profile_ids.txt')]
+#users = ['113750533748883690330', '105062617611748079921', '110793623474522801689', '104512463398531242371', '106721339835278966228']
+#users = ['104512463398531242371']
+users = [line.strip() for line in open('profile_ids.txt')]
 
 for user in users:
 #    print user
+    data = {}
     profile_id = name = None
     following = followers = 'hidden'
 
     try:
-        (reviews, name, profile) = gplus.getUserProfile(user)
+        #(reviews, name, profile) = gplus.getUserProfile(user, reparse = True, sleepBeforeRequest = 1)
+        (data, profile) = gplus.getUserProfile(user, reparse = True, sleepBeforeRequest = 1)
+            
+#        print data
+
+        if data['status'] == 'success':
+            printt('%s\t%s\t%s\t%s\t%s' % (data['id'], data['name'], data['followers'], data['following'], '; '.join(data['location'])))
+        else:
+            printt('%s\t%s\t%s\t%s\tPARSE ERROR' % (data['id'], data['name'], data['followers'], data['following']))
+
+        
     except:
-        printt('%s\t%s\t%s\t%s\tPARSE ERROR' % (user, name, followers, following))
+        print data
         print "Unexpected error:", sys.exc_info()
+        
+        if not data.has_key('name'):
+            data['name'] = 'REMOVE ID'
+        if not data.has_key('followers'):
+            data['followers'] = ''
+        if not data.has_key('following'):
+            data['following'] = ''
+        
+        printt('%s\t%s\t%s\t%s\tPARSE ERROR' % (user, data['name'], data['followers'], data['following']))
+
         continue
-    
-    #print profile
-    try:
-        following = profile[3][0][0]
-    except:
-        pass
 
-
-    try:
-        followers = profile[3][2][0]
-    except:
-        pass
-    
-    
-    try:
-        profile_id = profile[0]
-        printt('%s\t%s\t%s\t%s' % (profile_id, name, followers, following))
-    except:
-        printt('%s\t%s\t%s\t%s\tPARSE ERROR' % (profile_id, name, followers, following))
-        pass    
-    #print 'name:%s' % name
-    #print 'id:%s' % profile_id
-    #print 'followers:%s' % followers
-    #print 'following:%s' % following
-    
-
-
-
-
-
+        
 sys.exit()
 
 
